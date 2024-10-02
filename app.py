@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, flash, jsonify
+from flask import Flask, request, render_template, redirect, flash, jsonify, session
 
 # from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
@@ -11,7 +11,7 @@ app.config["SECRET_KEY"] = "chickenzarecool21837"
 # debug = DebugToolbarExtension(app)
 
 # Initialize empty responses list to store user answers.
-responses = []
+# responses = []
 
 
 @app.route("/")
@@ -20,18 +20,24 @@ def home_page():
     return render_template("home.html", survey=satisfaction_survey)
 
 
+@app.route("/set-session", methods=["POST"])
+def set_session():
+    session["responses"] = []
+    return redirect("/questions/0")
+
+
 @app.route("/questions/<int:question_num>")
 def question_form(question_num):
     """Shows each question in the survey, one at a time."""
-    if question_num != len(responses):
+    if question_num != len(session["responses"]):
         flash(
             "You are trying to access an invalid question!",
             "error",
         )
 
-    question_num = len(responses)
+    question_num = len(session["responses"])
 
-    if len(responses) >= len(satisfaction_survey.questions):
+    if len(session["responses"]) >= len(satisfaction_survey.questions):
         return redirect("/thank-you")
 
     return render_template(
@@ -46,7 +52,10 @@ def answer_to_questions():
     """Handles storing user answers in responses list. Redirects to the next question. If the user has answered all of the questions, then it redirects to the thank you page."""
     question_num = int(request.form["question_num"])
     user_answer = request.form["answer"]
+
+    responses = session["responses"]
     responses.append(user_answer)
+    session["responses"] = responses
 
     if question_num >= (len(satisfaction_survey.questions)):
         return redirect("/thank-you")
